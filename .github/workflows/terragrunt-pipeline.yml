@@ -69,7 +69,7 @@ jobs:
           cd ./dev/s3
           echo $PWD
           terragrunt run-all plan
-      with:
+      env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       #   GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
 
