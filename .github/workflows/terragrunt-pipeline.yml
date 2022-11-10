@@ -53,7 +53,7 @@ jobs:
 
     # Initialize a new or existing Terragrunt working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terragrunt Init
-      run: terragrunt init
+      run: terragrunt init -input=false
       # env:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 #         GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
