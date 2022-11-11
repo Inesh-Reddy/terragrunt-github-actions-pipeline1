@@ -132,12 +132,20 @@ jobs:
 
     - name: Terragrunt Validate
       id: validate
-      run: terragrunt run-all validate
+      run: 
+          echo $PWD
+          cd ./dev/s3
+          echo $PWD
+          terragrunt run-all validate
 
     # Generates an execution plan for Terragrunt
     - name: Terragrunt Plan    #github token for overall org
       if: github.event_name == 'pull_request'
       run: |
+         
+        echo $PWD
+        cd ./dev/s3
+        echo $PWD
         echo 'PLAN_OUTPUT<<EOF' >> $GITHUB_ENV
         terragrunt run-all plan -no-color >> $GITHUB_ENV
         echo 'EOF' >> $GITHUB_ENV
