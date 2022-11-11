@@ -138,11 +138,10 @@ jobs:
           echo $PWD
           terragrunt run-all validate
 
-    # Generates an execution plan for Terragrunt
-    - name: Terragrunt Plan    #github token for overall org
+    # Generates an execution plan for Terragrunt ...........github token for overall org
+    - name: Terragrunt Plan    
       if: github.event_name == 'pull_request'
       run: |
-         
         echo $PWD
         cd ./dev/s3
         echo $PWD
