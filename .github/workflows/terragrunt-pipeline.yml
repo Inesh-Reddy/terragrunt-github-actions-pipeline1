@@ -27,6 +27,7 @@ jobs:
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIRECTORY }}
+        shell: bash
 
         
     # providing an env variable 
@@ -39,9 +40,9 @@ jobs:
       contents: read
 
     # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
-    defaults:
-      run:
-        shell: bash
+    # defaults:
+    #   run:
+    #     shell: bash
 
     steps:
     # Checkout the repository to the GitHub Actions runner
