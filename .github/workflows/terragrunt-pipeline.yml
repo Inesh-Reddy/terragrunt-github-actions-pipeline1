@@ -70,8 +70,8 @@ jobs:
           cd ./dev/s3
           echo $PWD
           terragrunt run-all plan
-      env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  #create another var and define outside call the var here 
+      # env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  #create another var and define outside call the var here 
       #   GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
       #
 
