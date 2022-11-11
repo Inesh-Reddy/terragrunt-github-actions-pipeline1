@@ -81,7 +81,7 @@ jobs:
             echo $PWD
             cd ./dev/s3
             echo $PWD
-            infracost breakdown --path=${TF_ROOT} \
+            infracost breakdown --path=/tmp \
                               --format=json \
                               --out-file=/tmp/infracost-base.json
             #infracost breakdown --path . --format=json --out-file=/tmp/infracost.json
@@ -98,7 +98,7 @@ jobs:
         #   hide-and-new - Minimize previous comments and create a new one.
         #   new - Create a new cost estimate comment on every push.
         # See https://www.infracost.io/docs/features/cli_commands/#comment-on-pull-requests for other options.
-        infracost comment github \#--path=/tmp/infracost-base.json \
+        infracost comment github --path=/tmp/infracost-base.json \
                                    --repo=$GITHUB_REPOSITORY \
                                    --github-token=${{github.token}} \
                                    --pull-request=${{github.event.pull_request.number}} \
