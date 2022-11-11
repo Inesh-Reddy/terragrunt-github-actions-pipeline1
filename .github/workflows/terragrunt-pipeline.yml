@@ -26,8 +26,9 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ${{ env.WORKING_DIRECTORY }}
         shell: bash
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        
 
         
     # providing an env variable 
