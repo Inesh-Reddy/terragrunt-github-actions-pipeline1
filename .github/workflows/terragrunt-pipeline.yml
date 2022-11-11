@@ -6,6 +6,7 @@ on:
 #     - main
   pull_request:
   workflow_dispatch:
+env: ####### global vars across the jobs  /// add runtime env vars too
 
 jobs:
   Terragrunt:
@@ -70,8 +71,17 @@ jobs:
           echo $PWD
           terragrunt run-all plan
       env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  #create another var and define outside call the var here 
       #   GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+      #
+
+
+      ################
+      #check before apply of any sort //tag, comment etc
+      # ex : on approve apply should run ...likewise....
+
+
+
 
       # On push to main, build or change infrastructure according to Terragrunt configuration files
       # Note: It is recommended to set up a required "strict" status check in your repository for "Terragrunt Cloud". See the documentation on "strict" required status checks for more information: https://help.github.com/en/github/administering-a-repository/types-of-required-status-checks
