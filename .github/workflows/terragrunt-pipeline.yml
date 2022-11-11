@@ -115,15 +115,17 @@ jobs:
     #   run: terragrunt hclfmt --terragrunt-check                              
 
     # Initialize a new or existing Terragrunt working directory by creating initial files, loading any remote state, downloading modules, etc.
+    # - name: Terragrunt Init
+    #   id: init
+    #   run: terragrunt run-all init
     - name: Terragrunt Init
       id: init
-      run: terragrunt run-all init
-    # - name: Terragrunt Init
-    #   run: 
-    #       echo $PWD
-    #       cd ./dev/s3
-    #       echo $PWD
-    #       terragrunt init -input=false
+      run: 
+          echo $PWD
+          cd ./dev/s3
+          echo $PWD
+          terragrunt run-all init
+          #terragrunt init -input=false
       # env:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 #         GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
