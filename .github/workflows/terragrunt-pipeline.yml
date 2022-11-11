@@ -1,12 +1,6 @@
 name: 'Terragrunt CI'
 
-# on:
-#   push:  #dispatch workflow ---- read and try
-# #     branches:
-# #     - main
-#   pull_request:
-#   workflow_dispatch:
-# env: ####### global vars across the jobs  /// add runtime env vars too
+
 
 on:
   push:
@@ -28,7 +22,11 @@ jobs:
       run:
         shell: bash
         working-directory: ${{ env.WORKING_DIRECTORY }}
-        
+    # # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+    # defaults:
+    #   run:
+    #     shell: bash
+    #     working-directory: ${{ env.WORKING_DIRECTORY }}        
 
         
     # providing an env variable 
