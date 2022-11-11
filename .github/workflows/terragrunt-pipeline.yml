@@ -89,9 +89,9 @@ jobs:
                                   --pull-request ${{ github.event.pull_request.number }} \
                                   --behavior new
     # format
-    - name: Terragrunt Format
-      id: fmt
-      run: terragrunt hclfmt --terragrunt-check                              
+    # - name: Terragrunt Format
+    #   id: fmt
+    #   run: terragrunt hclfmt --terragrunt-check                              
 
     # Initialize a new or existing Terragrunt working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terragrunt Init
