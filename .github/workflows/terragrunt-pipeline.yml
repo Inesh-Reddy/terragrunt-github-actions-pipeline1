@@ -76,39 +76,39 @@ jobs:
 
     # Setting up Infracost ----for estimated cost of infrastructure    
     - name: Setup Infracost
-        if: github.event_name == 'pull_request'
-        uses: infracost/actions/setup@v1
-        with:
-          api-key: ${{ secrets.INFRACOST_API_KEY }}
+      if: github.event_name == 'pull_request'
+      uses: infracost/actions/setup@v1
+      with:
+        api-key: ${{ secrets.INFRACOST_API_KEY }}
 
     - name: Run Infracost
-        if: github.event_name == 'pull_request'
-        run: infracost breakdown --path . --format=json --out-file=/tmp/infracost.json
+      if: github.event_name == 'pull_request'
+      run: infracost breakdown --path . --format=json --out-file=/tmp/infracost.json
 
     - name: Post Infracost comment
-        if: github.event_name == 'pull_request'
-        run: |
-          # Posts a comment to the PR using the 'update' behavior.
-          # This creates a single comment and updates it. The "quietest" option.
-          # The other valid behaviors are:
-          #   delete-and-new - Delete previous comments and create a new one.
-          #   hide-and-new - Minimize previous comments and create a new one.
-          #   new - Create a new cost estimate comment on every push.
-          # See https://www.infracost.io/docs/features/cli_commands/#comment-on-pull-requests for other options.
-          infracost comment github --path /tmp/infracost.json \
-                                   --repo $GITHUB_REPOSITORY \
-                                   --github-token ${{ secrets.GITHUB_TOKEN }} \
-                                   --pull-request ${{ github.event.pull_request.number }} \
-                                   --behavior new
+      if: github.event_name == 'pull_request'
+      run: |
+        # Posts a comment to the PR using the 'update' behavior.
+        # This creates a single comment and updates it. The "quietest" option.
+        # The other valid behaviors are:
+        #   delete-and-new - Delete previous comments and create a new one.
+        #   hide-and-new - Minimize previous comments and create a new one.
+        #   new - Create a new cost estimate comment on every push.
+        # See https://www.infracost.io/docs/features/cli_commands/#comment-on-pull-requests for other options.
+        infracost comment github --path /tmp/infracost.json \
+                                  --repo $GITHUB_REPOSITORY \
+                                  --github-token ${{ secrets.GITHUB_TOKEN }} \
+                                  --pull-request ${{ github.event.pull_request.number }} \
+                                  --behavior new
     # format
     - name: Terragrunt Format
-        id: fmt
-        run: terragrunt hclfmt --terragrunt-check                              
+      id: fmt
+      run: terragrunt hclfmt --terragrunt-check                              
 
     # Initialize a new or existing Terragrunt working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terragrunt Init
-        id: init
-        run: terragrunt run-all init
+      id: init
+      run: terragrunt run-all init
     # - name: Terragrunt Init
     #   run: 
     #       echo $PWD
@@ -120,17 +120,17 @@ jobs:
 #         GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
 
     - name: Terragrunt Validate
-        id: validate
-        run: terragrunt run-all validate
+      id: validate
+      run: terragrunt run-all validate
 
     # Generates an execution plan for Terragrunt
     - name: Terragrunt Plan    #github token for overall org
       if: github.event_name == 'pull_request'
-        run: |
-          echo 'PLAN_OUTPUT<<EOF' >> $GITHUB_ENV
-          terragrunt run-all plan -no-color >> $GITHUB_ENV
-          echo 'EOF' >> $GITHUB_ENV
-        continue-on-error: true
+      run: |
+        echo 'PLAN_OUTPUT<<EOF' >> $GITHUB_ENV
+        terragrunt run-all plan -no-color >> $GITHUB_ENV
+        echo 'EOF' >> $GITHUB_ENV
+      continue-on-error: true
       # run: 
       #     echo $PWD
       #     cd ./dev/s3
@@ -142,33 +142,33 @@ jobs:
       #
 
     - uses: actions/github-script@0.9.0
-        if: github.event_name == 'pull_request'
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const output = `#### Terragrunt Format and Style 🖌 \`${{ steps.fmt.outcome }}\`
-            #### Terragrunt Initialization ⚙️ \`${{ steps.init.outcome }}\`
-            #### Terragrunt Validation 🤖 \`${{ steps.validate.outcome }}\`
-            #### Terragrunt Plan 📖 \`${{ steps.plan.outcome }}\`
-            <details><summary>Show Plan</summary>
-            \`\`\`\n
-            ${{ env.PLAN_OUTPUT }}
-            \`\`\`
-            </details>
-            Results for commit: ${{ github.event.pull_request.head.sha }}
+      if: github.event_name == 'pull_request'
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const output = `#### Terragrunt Format and Style 🖌 \`${{ steps.fmt.outcome }}\`
+          #### Terragrunt Initialization ⚙️ \`${{ steps.init.outcome }}\`
+          #### Terragrunt Validation 🤖 \`${{ steps.validate.outcome }}\`
+          #### Terragrunt Plan 📖 \`${{ steps.plan.outcome }}\`
+          <details><summary>Show Plan</summary>
+          \`\`\`\n
+          ${{ env.PLAN_OUTPUT }}
+          \`\`\`
+          </details>
+          Results for commit: ${{ github.event.pull_request.head.sha }}
+          
+          *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.WORKING_DIRECTORY }}\`, Workflow: \`${{ github.workflow }}\`*`;
             
-            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.WORKING_DIRECTORY }}\`, Workflow: \`${{ github.workflow }}\`*`;
-              
-            github.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: output
-            })
+          github.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: output
+          })
 
     - name: Terragrunt Plan Status
-        if: steps.plan.outcome == 'failure'
-        run: exit 1
+      if: steps.plan.outcome == 'failure'
+      run: exit 1
 
       ################
       #check before apply of any sort //tag, comment etc
@@ -176,8 +176,8 @@ jobs:
 
 
     - name: Terragrunt Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terragrunt run-all apply --terragrunt-non-interactive
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: terragrunt run-all apply --terragrunt-non-interactive
 
       # On push to main, build or change infrastructure according to Terragrunt configuration files
       # Note: It is recommended to set up a required "strict" status check in your repository for "Terragrunt Cloud". See the documentation on "strict" required status checks for more information: https://help.github.com/en/github/administering-a-repository/types-of-required-status-checks
