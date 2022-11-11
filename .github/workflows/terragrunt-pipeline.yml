@@ -6,7 +6,7 @@ on:
 #     - main
   pull_request:
   workflow_dispatch:
-env: ####### global vars across the jobs  /// add runtime env vars too
+# env: ####### global vars across the jobs  /// add runtime env vars too
 
 jobs:
   Terragrunt:
