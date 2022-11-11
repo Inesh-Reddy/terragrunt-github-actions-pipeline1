@@ -19,11 +19,12 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ${{ env.WORKING_DIRECTORY }}
+        shell: bash
+        # working-directory: ${{ env.WORKING_DIRECTORY }}
         
     # providing an env variable 
-    env:
-      WORKING_DIRECTORY: dev
+    # env:
+    #   WORKING_DIRECTORY: Terragrubt/dev
 
     # these permissions are required to use the AWS OIDC Creds  
     permissions:
