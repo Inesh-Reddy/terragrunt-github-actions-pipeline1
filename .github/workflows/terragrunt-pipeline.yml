@@ -20,17 +20,6 @@ jobs:
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIRECTORY }}
-    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
-    defaults:
-      run:
-        shell: bash         
-# on:
-#   push:  #dispatch workflow ---- read and try
-# #     branches:
-# #     - main
-#   pull_request:
-#   workflow_dispatch:
-# env: ####### global vars across the jobs  /// add runtime env vars too
         
     # providing an env variable 
     env:
