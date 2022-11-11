@@ -1,25 +1,35 @@
 name: 'Terragrunt CI'
 
 on:
-  push:  #dispatch workflow ---- read and try
-#     branches:
-#     - main
+  push:
+    branches:
+      - main
+    paths:
+      - 'Terragrunt/dev/**'
   pull_request:
+    branches:
+      - main
+    paths:
+      - 'Terragrunt/dev/**'
   workflow_dispatch:
-# env: ####### global vars across the jobs  /// add runtime env vars too
 
 jobs:
   Terragrunt:
     name: 'Terragrunt'
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-
-    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
     defaults:
       run:
         shell: bash
+        # working-directory: ${{ env.WORKING_DIRECTORY }}
+        
+    # providing an env variable 
+    # env:
+    #   WORKING_DIRECTORY: Terragrubt/dev
+
+    # these permissions are required to use the AWS OIDC Creds  
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
     # Checkout the repository to the GitHub Actions runner
@@ -52,36 +62,116 @@ jobs:
         sudo chmod +x /bin/terragrunt
         terragrunt -v
 
+    # Setting up Infracost ----for estimated cost of infrastructure    
+    - name: Setup Infracost
+      if: github.event_name == 'pull_request'
+      uses: infracost/actions/setup@v1
+      with:
+        api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+    - name: Run Infracost
+      if: github.event_name == 'pull_request'
+      run: 
+            echo $PWD
+            cd ./dev/s3
+            echo $PWD
+            infracost breakdown --path . --format=json --out-file=/tmp/infracost.json
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Post Infracost comment
+      if: github.event_name == 'pull_request'
+      run: |
+        # Posts a comment to the PR using the 'update' behavior.
+        # This creates a single comment and updates it. The "quietest" option.
+        # The other valid behaviors are:
+        #   delete-and-new - Delete previous comments and create a new one.
+        #   hide-and-new - Minimize previous comments and create a new one.
+        #   new - Create a new cost estimate comment on every push.
+        # See https://www.infracost.io/docs/features/cli_commands/#comment-on-pull-requests for other options.
+        infracost comment github --path /tmp/infracost.json \
+                                  --repo $GITHUB_REPOSITORY \
+                                  --github-token ${{ secrets.GITHUB_TOKEN }} \
+                                  --pull-request ${{ github.event.pull_request.number }} \
+                                  --behavior new
+    # format
+    # - name: Terragrunt Format
+    #   id: fmt
+    #   run: terragrunt hclfmt --terragrunt-check                              
+
     # Initialize a new or existing Terragrunt working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terragrunt Init
-      run: 
-          echo $PWD
-          cd ./dev/s3
-          echo $PWD
-          terragrunt init -input=false
+      id: init
+      run: terragrunt run-all init
+    # - name: Terragrunt Init
+    #   run: 
+    #       echo $PWD
+    #       cd ./dev/s3
+    #       echo $PWD
+    #       terragrunt init -input=false
       # env:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 #         GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
 
+    - name: Terragrunt Validate
+      id: validate
+      run: terragrunt run-all validate
+
     # Generates an execution plan for Terragrunt
     - name: Terragrunt Plan    #github token for overall org
-      run: 
-          echo $PWD
-          cd ./dev/s3
-          echo $PWD
-          terragrunt run-all plan
+      if: github.event_name == 'pull_request'
+      run: |
+        echo 'PLAN_OUTPUT<<EOF' >> $GITHUB_ENV
+        terragrunt run-all plan -no-color >> $GITHUB_ENV
+        echo 'EOF' >> $GITHUB_ENV
+      continue-on-error: true
+      # run: 
+      #     echo $PWD
+      #     cd ./dev/s3
+      #     echo $PWD
+      #     terragrunt run-all plan
       # env:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  #create another var and define outside call the var here 
       #   GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
       #
 
+    - uses: actions/github-script@0.9.0
+      if: github.event_name == 'pull_request'
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const output = `#### Terragrunt Format and Style 🖌 \`${{ steps.fmt.outcome }}\`
+          #### Terragrunt Initialization ⚙️ \`${{ steps.init.outcome }}\`
+          #### Terragrunt Validation 🤖 \`${{ steps.validate.outcome }}\`
+          #### Terragrunt Plan 📖 \`${{ steps.plan.outcome }}\`
+          <details><summary>Show Plan</summary>
+          \`\`\`\n
+          ${{ env.PLAN_OUTPUT }}
+          \`\`\`
+          </details>
+          Results for commit: ${{ github.event.pull_request.head.sha }}
+          
+          *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.WORKING_DIRECTORY }}\`, Workflow: \`${{ github.workflow }}\`*`;
+            
+          github.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: output
+          })
+
+    - name: Terragrunt Plan Status
+      if: steps.plan.outcome == 'failure'
+      run: exit 1
 
       ################
       #check before apply of any sort //tag, comment etc
       # ex : on approve apply should run ...likewise....
 
 
-
+    - name: Terragrunt Apply
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: terragrunt run-all apply --terragrunt-non-interactive
 
       # On push to main, build or change infrastructure according to Terragrunt configuration files
       # Note: It is recommended to set up a required "strict" status check in your repository for "Terragrunt Cloud". See the documentation on "strict" required status checks for more information: https://help.github.com/en/github/administering-a-repository/types-of-required-status-checks
@@ -106,53 +196,28 @@ jobs:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # name: 'Terragrunt CI'
 
 # on:
-#   push:
-#     branches:
-#       - main
-#     paths:
-#       - 'Terragrunt/dev/**'
+#   push:  #dispatch workflow ---- read and try
+# #     branches:
+# #     - main
 #   pull_request:
-#     branches:
-#       - main
-#     paths:
-#       - 'Terragrunt/dev/**'
 #   workflow_dispatch:
+# # env: ####### global vars across the jobs  /// add runtime env vars too
 
 # jobs:
 #   Terragrunt:
 #     name: 'Terragrunt'
 #     runs-on: ubuntu-latest
-#     defaults:
-#       run:
-#         shell: bash
-#         # working-directory: ${{ env.WORKING_DIRECTORY }}
-        
-#     # providing an env variable 
-#     # env:
-#     #   WORKING_DIRECTORY: Terragrubt/dev
-
-#     # these permissions are required to use the AWS OIDC Creds  
 #     permissions:
 #       id-token: write
 #       contents: read
+
+#     # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+#     defaults:
+#       run:
+#         shell: bash
 
 #     steps:
 #     # Checkout the repository to the GitHub Actions runner
@@ -185,116 +250,36 @@ jobs:
 #         sudo chmod +x /bin/terragrunt
 #         terragrunt -v
 
-#     # Setting up Infracost ----for estimated cost of infrastructure    
-#     - name: Setup Infracost
-#       if: github.event_name == 'pull_request'
-#       uses: infracost/actions/setup@v1
-#       with:
-#         api-key: ${{ secrets.INFRACOST_API_KEY }}
-
-#     - name: Run Infracost
-#       if: github.event_name == 'pull_request'
-#       run: 
-            # echo $PWD
-            # cd ./dev/s3
-            # echo $PWD
-            # infracost breakdown --path . --format=json --out-file=/tmp/infracost.json
-#       env:
-#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-#     - name: Post Infracost comment
-#       if: github.event_name == 'pull_request'
-#       run: |
-#         # Posts a comment to the PR using the 'update' behavior.
-#         # This creates a single comment and updates it. The "quietest" option.
-#         # The other valid behaviors are:
-#         #   delete-and-new - Delete previous comments and create a new one.
-#         #   hide-and-new - Minimize previous comments and create a new one.
-#         #   new - Create a new cost estimate comment on every push.
-#         # See https://www.infracost.io/docs/features/cli_commands/#comment-on-pull-requests for other options.
-#         infracost comment github --path /tmp/infracost.json \
-#                                   --repo $GITHUB_REPOSITORY \
-#                                   --github-token ${{ secrets.GITHUB_TOKEN }} \
-#                                   --pull-request ${{ github.event.pull_request.number }} \
-#                                   --behavior new
-#     # format
-#     # - name: Terragrunt Format
-#     #   id: fmt
-#     #   run: terragrunt hclfmt --terragrunt-check                              
-
 #     # Initialize a new or existing Terragrunt working directory by creating initial files, loading any remote state, downloading modules, etc.
 #     - name: Terragrunt Init
-#       id: init
-#       run: terragrunt run-all init
-#     # - name: Terragrunt Init
-#     #   run: 
-#     #       echo $PWD
-#     #       cd ./dev/s3
-#     #       echo $PWD
-#     #       terragrunt init -input=false
+#       run: 
+#           echo $PWD
+#           cd ./dev/s3
+#           echo $PWD
+#           terragrunt init -input=false
 #       # env:
 #       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 # #         GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
 
-#     - name: Terragrunt Validate
-#       id: validate
-#       run: terragrunt run-all validate
-
 #     # Generates an execution plan for Terragrunt
 #     - name: Terragrunt Plan    #github token for overall org
-#       if: github.event_name == 'pull_request'
-#       run: |
-#         echo 'PLAN_OUTPUT<<EOF' >> $GITHUB_ENV
-#         terragrunt run-all plan -no-color >> $GITHUB_ENV
-#         echo 'EOF' >> $GITHUB_ENV
-#       continue-on-error: true
-#       # run: 
-#       #     echo $PWD
-#       #     cd ./dev/s3
-#       #     echo $PWD
-#       #     terragrunt run-all plan
+#       run: 
+#           echo $PWD
+#           cd ./dev/s3
+#           echo $PWD
+#           terragrunt run-all plan
 #       # env:
 #       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  #create another var and define outside call the var here 
 #       #   GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
 #       #
 
-#     - uses: actions/github-script@0.9.0
-#       if: github.event_name == 'pull_request'
-#       with:
-#         github-token: ${{ secrets.GITHUB_TOKEN }}
-#         script: |
-#           const output = `#### Terragrunt Format and Style 🖌 \`${{ steps.fmt.outcome }}\`
-#           #### Terragrunt Initialization ⚙️ \`${{ steps.init.outcome }}\`
-#           #### Terragrunt Validation 🤖 \`${{ steps.validate.outcome }}\`
-#           #### Terragrunt Plan 📖 \`${{ steps.plan.outcome }}\`
-#           <details><summary>Show Plan</summary>
-#           \`\`\`\n
-#           ${{ env.PLAN_OUTPUT }}
-#           \`\`\`
-#           </details>
-#           Results for commit: ${{ github.event.pull_request.head.sha }}
-          
-#           *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.WORKING_DIRECTORY }}\`, Workflow: \`${{ github.workflow }}\`*`;
-            
-#           github.issues.createComment({
-#             issue_number: context.issue.number,
-#             owner: context.repo.owner,
-#             repo: context.repo.repo,
-#             body: output
-#           })
-
-#     - name: Terragrunt Plan Status
-#       if: steps.plan.outcome == 'failure'
-#       run: exit 1
 
 #       ################
 #       #check before apply of any sort //tag, comment etc
 #       # ex : on approve apply should run ...likewise....
 
 
-#     - name: Terragrunt Apply
-#       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-#       run: terragrunt run-all apply --terragrunt-non-interactive
+
 
 #       # On push to main, build or change infrastructure according to Terragrunt configuration files
 #       # Note: It is recommended to set up a required "strict" status check in your repository for "Terragrunt Cloud". See the documentation on "strict" required status checks for more information: https://help.github.com/en/github/administering-a-repository/types-of-required-status-checks
@@ -306,3 +291,31 @@ jobs:
 #       #   GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
 #       # - name: "Configure AWS Credentials" Action For GitHub Actions
 #       #   uses: aws-actions/configure-aws-credentials@v1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
