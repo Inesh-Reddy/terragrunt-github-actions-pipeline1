@@ -55,9 +55,9 @@ jobs:
     # Initialize a new or existing Terragrunt working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terragrunt Init
       run: 
-          echo $PWD
-          cd ./dev/s3
-          echo $PWD
+          # echo $PWD
+          # cd ./dev/s3
+          # echo $PWD
           terragrunt init -input=false
       # env:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -66,9 +66,9 @@ jobs:
     # Generates an execution plan for Terragrunt
     - name: Terragrunt Plan    #github token for overall org
       run: 
-          echo $PWD
-          cd ./dev/s3
-          echo $PWD
+          # echo $PWD
+          # cd ./dev/s3
+          # echo $PWD
           terragrunt run-all plan
       env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  #create another var and define outside call the var here 
