@@ -192,7 +192,6 @@ jobs:
       #check before apply of any sort //tag, comment etc
       # ex : on approve apply should run ...likewise....
 
-
     - name: Terragrunt Apply
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: terragrunt run-all apply --terragrunt-non-interactive
