@@ -71,7 +71,7 @@ jobs:
 
     - name: Run Infracost
       if: github.event_name == 'pull_request'
-      run: infracost breakdown --path . --format=json --out-file=/tmp/infracost.json
+      run: infracost breakdown --path . #--format=json --out-file=/tmp/infracost.json
 
     - name: Post Infracost comment
       if: github.event_name == 'pull_request'
