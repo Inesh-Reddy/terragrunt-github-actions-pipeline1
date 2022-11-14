@@ -145,9 +145,10 @@ jobs:
         # echo $PWD
         # cd ./dev/s3
         # echo $PWD
-        echo 'PLAN_OUTPUT<<EOF' >> $GITHUB_ENV
-        terragrunt run-all plan -no-color >> $GITHUB_ENV
-        echo 'EOF' >> $GITHUB_ENV
+        # echo 'PLAN_OUTPUT<<EOF' >> $GITHUB_ENV
+        terragrunt run-all plan 
+        # -no-color >> $GITHUB_ENV
+        # echo 'EOF' >> $GITHUB_ENV
       continue-on-error: true
       # run: 
       #     echo $PWD
