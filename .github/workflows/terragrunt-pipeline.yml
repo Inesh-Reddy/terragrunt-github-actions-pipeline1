@@ -68,41 +68,41 @@ jobs:
         sudo chmod +x /bin/terragrunt
         terragrunt -v
 
-    # Setting up Infracost ----for estimated cost of infrastructure    
-    - name: Setup Infracost
-      if: github.event_name == 'pull_request'
-      uses: infracost/actions/setup@v1
-      with:
-        api-key: ${{ secrets.INFRACOST_API_KEY }}
+    # # Setting up Infracost ----for estimated cost of infrastructure    
+    # - name: Setup Infracost
+    #   if: github.event_name == 'pull_request'
+    #   uses: infracost/actions/setup@v1
+    #   with:
+    #     api-key: ${{ secrets.INFRACOST_API_KEY }}
 
-    - name: Run Infracost
-      if: github.event_name == 'pull_request'
-      run: 
-            echo $PWD
-            cd ./dev/s3
-            echo $PWD
-            infracost breakdown --path=/tmp \
-                              --format=json \
-                              --out-file=/tmp/infracost-base.json
-            #infracost breakdown --path . --format=json --out-file=/tmp/infracost.json
-      env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    # - name: Run Infracost
+    #   if: github.event_name == 'pull_request'
+    #   run: 
+    #         echo $PWD
+    #         cd ./dev/s3
+    #         echo $PWD
+    #         infracost breakdown --path=/tmp \
+    #                           --format=json \
+    #                           --out-file=/tmp/infracost-base.json
+    #         #infracost breakdown --path . --format=json --out-file=/tmp/infracost.json
+    #   env:
+    #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Post Infracost comment
-      if: github.event_name == 'pull_request'
-      run: |
-        # Posts a comment to the PR using the 'update' behavior.
-        # This creates a single comment and updates it. The "quietest" option.
-        # The other valid behaviors are:
-        #   delete-and-new - Delete previous comments and create a new one.
-        #   hide-and-new - Minimize previous comments and create a new one.
-        #   new - Create a new cost estimate comment on every push.
-        # See https://www.infracost.io/docs/features/cli_commands/#comment-on-pull-requests for other options.
-        infracost comment github --path=/tmp/infracost-base.json \
-                                   --repo=$GITHUB_REPOSITORY \
-                                   --github-token=${{github.token}} \
-                                   --pull-request=${{github.event.pull_request.number}} \
-                                   --behavior=update
+    # - name: Post Infracost comment
+    #   if: github.event_name == 'pull_request'
+    #   run: |
+    #     # Posts a comment to the PR using the 'update' behavior.
+    #     # This creates a single comment and updates it. The "quietest" option.
+    #     # The other valid behaviors are:
+    #     #   delete-and-new - Delete previous comments and create a new one.
+    #     #   hide-and-new - Minimize previous comments and create a new one.
+    #     #   new - Create a new cost estimate comment on every push.
+    #     # See https://www.infracost.io/docs/features/cli_commands/#comment-on-pull-requests for other options.
+    #     infracost comment github --path=/tmp/infracost-base.json \
+    #                                --repo=$GITHUB_REPOSITORY \
+    #                                --github-token=${{github.token}} \
+    #                                --pull-request=${{github.event.pull_request.number}} \
+    #                                --behavior=update
 
   # infracost comment github --path /tmp/infracost.json \
   #                           --repo $GITHUB_REPOSITORY \
