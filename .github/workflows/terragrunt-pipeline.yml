@@ -30,7 +30,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v2
       - name: terragrunt plan & apply
-        uses: Inesh-Reddy/terragrunt-github-actions-pipeline1@ineshbranch
+        uses: Inesh-Reddy/terragrunt-github-actions-pipeline1@ineshbranch/.github/action/terragrunt-action
         with:
           role-to-assume: arn:${{ matrix.aws }}:iam::${{ matrix.aws-account-id }}:role/${{ matrix.aws-role }}
           role-session-name: github-action
