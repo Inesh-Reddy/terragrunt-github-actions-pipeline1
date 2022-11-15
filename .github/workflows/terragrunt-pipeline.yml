@@ -7,6 +7,8 @@ on:
       - makefile
       - images/*
       - README.md
+  workflow_dispatch:
+
 jobs:
   terragrunt-action-dev:
     strategy:
