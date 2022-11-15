@@ -16,7 +16,7 @@ jobs:
         include:
           - env-dir: dev
             aws-region: us-east-1
-            aws-account-id: 733051034790
+            aws-account-id: 919611311137
             aws-role: terragrunt
             aws: aws
             aws-audience: sts.amazonaws.com
