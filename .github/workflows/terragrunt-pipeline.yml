@@ -29,7 +29,6 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
-
       - name: terragrunt plan & apply
         uses: Inesh-Reddy/terragrunt-github-actions-pipeline1@ineshbranch
         with:
