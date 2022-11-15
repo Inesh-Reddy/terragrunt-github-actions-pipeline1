@@ -1,95 +1,740 @@
-name: 'Terragrunt CI'
-
+name: 'Deploy Prod Infrastructure'
 on:
-  push:  #dispatch workflow ---- read and try
-#     branches:
-#     - main
-  pull_request:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - makefile
+      - images/*
+      - README.md
   workflow_dispatch:
-env: ####### global vars across the jobs  /// add runtime env vars too
-
+  
 jobs:
-  Terragrunt:
-    name: 'Terragrunt'
+  terragrunt-action-dev:
+    strategy:
+      matrix:
+        include:
+          - env-dir: dev
+            aws-region: us-east-1
+            aws-account-id: 919611311137
+            aws-role: inception-oidc-role
+            aws: aws
+            aws-audience: sts.amazonaws.com
+    name: terragrunt aws dev environment deploy
     runs-on: ubuntu-latest
+    continue-on-error: false
     permissions:
       id-token: write
       contents: read
-
-    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
-    defaults:
-      run:
-        shell: bash
-
     steps:
-    # Checkout the repository to the GitHub Actions runner
-    - name: Checkout
-      uses: actions/checkout@v2
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-    # Install the latest version of Terragrunt CLI and configure the Terragrunt CLI configuration file with a Terragrunt Cloud user API token
-    - name: Setup Terraform v1.2.6
-      uses: hashicorp/setup-Terraform@v1
-      with:
-        terraform_version: 1.2.6
-        terraform_wrapper: true
-    - name: Setup Terraform version
-      run: terraform --version
-    - name: Setup Terraform wrapper path
-      run: which terraform
-    - name: Configure AWS Credentials
-      id: awsconfig
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-region: ap-south-1
-        role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
-        # aws-access-key-id: ${{ inputs.AWS_ACCESS_KEY_ID }}
-        # aws-secret-access-key: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
-        # aws-session-token: ${{ inputs.AWS_SESSION_TOKEN }}
+      - name: terragrunt plan & apply
+        uses: ./.github/action/terragrunt-action
+        with:
+          role-to-assume: arn:${{ matrix.aws }}:iam::${{ matrix.aws-account-id }}:role/${{ matrix.aws-role }}
+          role-session-name: github-action
+          aws-region: ${{ matrix.aws-region }}
+          env-dir: ${{ matrix.env-dir }}
 
-    - name: Setup Terragrunt v0.38.4
-      run: |
-        sudo wget -q -O /bin/terragrunt "https://github.com/gruntwork-io/terragrunt/releases/download/v0.38.4/terragrunt_linux_amd64"
-        sudo chmod +x /bin/terragrunt
-        terragrunt -v
+# Inesh-Reddy/terragrunt-github-actions-pipeline1@ineshbranch
+# name: "Deploy Prod Infrastructure"
+# # description: Terragrunt_action
 
-    # Initialize a new or existing Terragrunt working directory by creating initial files, loading any remote state, downloading modules, etc.
-    - name: Terragrunt Init
-      run: 
-          echo $PWD
-          cd ./dev/s3
-          echo $PWD
-          terragrunt init -input=false
-      # env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#         GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+# on:
+#   push:
+#     branches:
+#       - main
+#     paths:
+#       - 'Terragrunt/dev/**'
+#   pull_request:
+#     branches:
+#       - main
+#     paths:
+#       - 'Terragrunt/dev/**'
+#   workflow_dispatch:
 
-    # Generates an execution plan for Terragrunt
-    - name: Terragrunt Plan    #github token for overall org
-      run: 
-          echo $PWD
-          cd ./dev/s3
-          echo $PWD
-          terragrunt run-all plan
-      env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  #create another var and define outside call the var here 
-      #   GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
-      #
+# jobs:
+#   terragrunt-action-dev:
+#     strategy:
+#       matrix:
+#         include:
+#           - env-dir: dev
+#             aws-region: us-east-1
+#             aws-account-id: 950711871063
+#             aws-role: terragrunt
+#             aws: aws
+              # aws-audience: sts.amazonaws.com
+#     name: terragrunt aws dev environment deploy
+#     runs-on: ubuntu-latest
+#     continue-on-error: false
+#     permissions:
+#       id-token: write
+#       contents: read
+#     steps:
+#       - name: Checkout repo
+#         uses: actions/checkout@v3
 
-
-      ################
-      #check before apply of any sort //tag, comment etc
-      # ex : on approve apply should run ...likewise....
-
+#       - name: terragrunt plan & apply
+#         uses: ./.github/action/terragrunt-action
+#         with:
+#           role-to-assume: arn:${{ matrix.aws }}:iam::${{ matrix.aws-account-id }}:role/${{ matrix.aws-role }}
+#           role-session-name: github-action
+#           aws-region: ${{ matrix.aws-region }}
+#           env-dir: ${{ matrix.env-dir }}
 
 
 
-      # On push to main, build or change infrastructure according to Terragrunt configuration files
-      # Note: It is recommended to set up a required "strict" status check in your repository for "Terragrunt Cloud". See the documentation on "strict" required status checks for more information: https://help.github.com/en/github/administering-a-repository/types-of-required-status-checks
-    # - name: Terragrunt Apply
-      # if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      # run: terragrunt run-all apply
-      # env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
-      # - name: "Configure AWS Credentials" Action For GitHub Actions
-      #   uses: aws-actions/configure-aws-credentials@v1
+
+# name: 'Terragrunt CI'
+
+# on:
+#   push:
+#     branches:
+#       - main
+#     paths:
+#       - 'Terragrunt/dev/**'
+#   pull_request:
+#     branches:
+#       - main
+#     paths:
+#       - 'Terragrunt/dev/**'
+#   workflow_dispatch:
+
+# # env:
+# #   # If you use private modules you'll need this env variable to use
+# #   # the same ssh-agent socket value across all jobs & steps.
+# #   SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+
+# jobs:
+#   Terragrunt:
+#     name: 'Terragrunt'
+#     runs-on: ubuntu-latest
+#     defaults:
+#       run:
+#         shell: bash
+#         # working-directory: ${{ env.WORKING_DIRECTORY }}
+        
+#     # providing an env variable 
+#     # env:
+#     #   WORKING_DIRECTORY: Terragrubt/dev
+
+#     # these permissions are required to use the AWS OIDC Creds  
+#     permissions:
+#       id-token: write
+#       contents: read
+#       pull-requests: write
+
+#     steps:
+#     # Checkout the repository to the GitHub Actions runner
+#     - name: Checkout
+#       uses: actions/checkout@v2
+
+#     # Install the latest version of Terragrunt CLI and configure the Terragrunt CLI configuration file with a Terragrunt Cloud user API token
+#     - name: Setup Terraform v1.2.6
+#       uses: hashicorp/setup-Terraform@v1
+#       with:
+#         terraform_version: 1.2.6
+#         terraform_wrapper: true
+#     - name: Setup Terraform version
+#       run: terraform --version
+#     - name: Setup Terraform wrapper path
+#       run: which terraform
+#     - name: Configure AWS Credentials
+#       id: awsconfig
+#       uses: aws-actions/configure-aws-credentials@v1
+#       with:
+#         aws-region: ap-south-1
+#         role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
+#         # aws-access-key-id: ${{ inputs.AWS_ACCESS_KEY_ID }}
+#         # aws-secret-access-key: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
+#         # aws-session-token: ${{ inputs.AWS_SESSION_TOKEN }}
+
+#     - name: Setup Terragrunt v0.38.4
+#       run: |
+#         sudo wget -q -O /bin/terragrunt "https://github.com/gruntwork-io/terragrunt/releases/download/v0.38.4/terragrunt_linux_amd64"
+#         sudo chmod +x /bin/terragrunt
+#         terragrunt -v
+
+#     # # Setting up Infracost ----for estimated cost of infrastructure    
+#     # - name: Setup Infracost
+#     #   if: github.event_name == 'pull_request'
+#     #   uses: infracost/actions/setup@v1
+#     #   with:
+#     #     api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+#     # - name: Run Infracost
+#     #   if: github.event_name == 'pull_request'
+#     #   run: 
+#     #         echo $PWD
+#     #         cd ./dev/s3
+#     #         echo $PWD
+#     #         infracost breakdown --path=/tmp \
+#     #                           --format=json \
+#     #                           --out-file=/tmp/infracost-base.json
+#     #         #infracost breakdown --path . --format=json --out-file=/tmp/infracost.json
+#     #   env:
+#     #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+#     # - name: Post Infracost comment
+#     #   if: github.event_name == 'pull_request'
+#     #   run: |
+#     #     # Posts a comment to the PR using the 'update' behavior.
+#     #     # This creates a single comment and updates it. The "quietest" option.
+#     #     # The other valid behaviors are:
+#     #     #   delete-and-new - Delete previous comments and create a new one.
+#     #     #   hide-and-new - Minimize previous comments and create a new one.
+#     #     #   new - Create a new cost estimate comment on every push.
+#     #     # See https://www.infracost.io/docs/features/cli_commands/#comment-on-pull-requests for other options.
+#     #     infracost comment github --path=/tmp/infracost-base.json \
+#     #                                --repo=$GITHUB_REPOSITORY \
+#     #                                --github-token=${{github.token}} \
+#     #                                --pull-request=${{github.event.pull_request.number}} \
+#     #                                --behavior=update
+
+#   # infracost comment github --path /tmp/infracost.json \
+#   #                           --repo $GITHUB_REPOSITORY \
+#   #                           --github-token ${{ secrets.GITHUB_TOKEN }} \
+#   #                           --pull-request ${{ github.event.pull_request.number }} \
+#   #                           --behavior new
+#     # format
+#     # - name: Terragrunt Format
+#     #   id: fmt
+#     #   run: terragrunt hclfmt --terragrunt-check                              
+
+#     # Initialize a new or existing Terragrunt working directory by creating initial files, loading any remote state, downloading modules, etc.
+#     # - name: Terragrunt Init
+#     #   id: init
+#     #   run: terragrunt run-all init
+#     - name: Terragrunt Init
+#       id: init
+#       run: 
+#           echo $PWD
+#           cd ./dev/s3
+#           echo $PWD
+#           terragrunt run-all init
+#           #terragrunt init -input=false
+#       # env:
+#       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+# #         GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+
+#     - name: Terragrunt Validate
+#       id: validate
+#       run: 
+#           echo $PWD
+#           cd ./dev/s3
+#           echo $PWD
+#           terragrunt run-all validate
+
+#     # Generates an execution plan for Terragrunt ...........github token for overall org
+#     - name: Terragrunt Plan    
+#       if: github.event_name == 'pull_request'
+#       run: |
+#         # echo $PWD
+#         # cd ./dev/s3
+#         # echo $PWD
+#         # echo 'PLAN_OUTPUT<<EOF' >> $GITHUB_ENV
+#         terragrunt run-all plan 
+#         # -no-color >> $GITHUB_ENV
+#         # echo 'EOF' >> $GITHUB_ENV
+#       continue-on-error: true
+#       # run: 
+#       #     echo $PWD
+#       #     cd ./dev/s3
+#       #     echo $PWD
+#       #     terragrunt run-all plan
+#       # env:
+#       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  #create another var and define outside call the var here 
+#       #   GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+#       #
+
+#     - uses: actions/github-script@0.9.0
+#       if: github.event_name == 'pull_request'
+#       with:
+#         github-token: ${{ secrets.GITHUB_TOKEN }}
+#         script: |
+#           const output = `#### Terragrunt Format and Style 🖌 \`${{ steps.fmt.outcome }}\`
+#           #### Terragrunt Initialization ⚙️ \`${{ steps.init.outcome }}\`
+#           #### Terragrunt Validation 🤖 \`${{ steps.validate.outcome }}\`
+#           #### Terragrunt Plan 📖 \`${{ steps.plan.outcome }}\`
+#           <details><summary>Show Plan</summary>
+#           \`\`\`\n
+#           ${{ env.PLAN_OUTPUT }}
+#           \`\`\`
+#           </details>
+#           Results for commit: ${{ github.event.pull_request.head.sha }}
+          
+#           *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.WORKING_DIRECTORY }}\`, Workflow: \`${{ github.workflow }}\`*`;
+            
+#           github.issues.createComment({
+#             issue_number: context.issue.number,
+#             owner: context.repo.owner,
+#             repo: context.repo.repo,
+#             body: output
+#           })
+
+#     - name: Terragrunt Plan Status
+#       if: steps.plan.outcome == 'failure'
+#       run: exit 1
+
+#       ################
+#       #check before apply of any sort //tag, comment etc
+#       # ex : on approve apply should run ...likewise....
+
+#     - name: Terragrunt Apply
+#       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+#       run: terragrunt run-all apply --terragrunt-non-interactive
+
+#       # On push to main, build or change infrastructure according to Terragrunt configuration files
+#       # Note: It is recommended to set up a required "strict" status check in your repository for "Terragrunt Cloud". See the documentation on "strict" required status checks for more information: https://help.github.com/en/github/administering-a-repository/types-of-required-status-checks
+#     # - name: Terragrunt Apply
+#       # if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+#       # run: terragrunt run-all apply
+#       # env:
+#       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#       #   GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+#       # - name: "Configure AWS Credentials" Action For GitHub Actions
+#       #   uses: aws-actions/configure-aws-credentials@v1
+
+
+
+
+
+  # terragrunt-action:
+  #   needs: 
+  #     - terragrunt-action-dev
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         - env-dir: prod
+  #           aws-region: cn-northwest-1
+  #           aws-account-id: 527109613237
+  #           aws-role: terragrunt
+  #           aws: aws-cn
+  #           aws-audience: sts.cn-northwest-1.amazonaws.com.cn
+
+  #         - env-dir: stage
+  #           aws-region: ap-southeast-1
+  #           aws-account-id: 594962198840
+  #           aws-role: terragrunt
+  #           aws: aws
+  #           aws-audience: sts.amazonaws.com
+
+
+    # name: terragrunt prod & stage deploy
+    # runs-on: ubuntu-latest
+    # continue-on-error: true
+    # permissions:
+    #   id-token: write
+    #   contents: read
+    # steps:
+    #   - name: Checkout repo
+    #     uses: actions/checkout@v3
+
+    #   - name: terragrunt plan & apply
+    #     uses: ./.github/action/terragrunt-action
+    #     with:
+    #       role-to-assume: arn:${{ matrix.aws }}:iam::${{ matrix.aws-account-id }}:role/${{ matrix.aws-role }}
+    #       role-session-name: github-action
+    #       aws-region: ${{ matrix.aws-region }}
+    #       env-dir: ${{ matrix.env-dir }}
+    #       aws-audience: ${{ matrix.aws-audience }}
+
+
+
+
+
+# name: "Deploy Prod Infrastructure"
+# # description: Terragrunt_action
+
+
+# on:
+#   push:
+#     branches:
+#       - main
+#     paths:
+#       - 'Terragrunt/dev/**'
+#   pull_request:
+#     branches:
+#       - main
+#     paths:
+#       - 'Terragrunt/dev/**'
+#   workflow_dispatch:
+
+# jobs:
+#   terragrunt-action-dev:
+#     strategy:
+#       matrix:
+#         include:
+#           - env-dir: dev
+#             aws-region: us-east-1
+#             aws-account-id: 950711871063
+#             aws-role: terragrunt
+#             aws: aws
+              # aws-audience: sts.amazonaws.com
+#     name: terragrunt aws dev environment deploy
+#     runs-on: ubuntu-latest
+#     continue-on-error: false
+#     permissions:
+#       id-token: write
+#       contents: read
+#     steps:
+#       - name: Checkout repo
+#         uses: actions/checkout@v3
+
+#       - name: terragrunt plan & apply
+#         uses: ./.github/action/terragrunt-action
+#         with:
+#           role-to-assume: arn:${{ matrix.aws }}:iam::${{ matrix.aws-account-id }}:role/${{ matrix.aws-role }}
+#           role-session-name: github-action
+#           aws-region: ${{ matrix.aws-region }}
+#           env-dir: ${{ matrix.env-dir }}
+
+
+
+# name: 'Terragrunt CI'
+
+# on:
+#   push:
+#     branches:
+#       - main
+#     paths:
+#       - 'Terragrunt/dev/**'
+#   pull_request:
+#     branches:
+#       - main
+#     paths:
+#       - 'Terragrunt/dev/**'
+#   workflow_dispatch:
+
+# env:
+#   # If you use private modules you'll need this env variable to use
+#   # the same ssh-agent socket value across all jobs & steps.
+#   SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+
+# jobs:
+#   Terragrunt:
+#     name: 'Terragrunt'
+#     runs-on: ubuntu-latest
+#     defaults:
+#       run:
+#         shell: bash
+#         # working-directory: ${{ env.WORKING_DIRECTORY }}
+        
+#     # providing an env variable 
+#     # env:
+#     #   WORKING_DIRECTORY: Terragrubt/dev
+
+#     # these permissions are required to use the AWS OIDC Creds  
+#     permissions:
+#       id-token: write
+#       contents: read
+#       pull-requests: write
+
+#     steps:
+#     # Checkout the repository to the GitHub Actions runner
+#     - name: Checkout
+#       uses: actions/checkout@v2
+
+#     # Install the latest version of Terragrunt CLI and configure the Terragrunt CLI configuration file with a Terragrunt Cloud user API token
+#     - name: Setup Terraform v1.2.6
+#       uses: hashicorp/setup-Terraform@v1
+#       with:
+#         terraform_version: 1.2.6
+#         terraform_wrapper: true
+#     - name: Setup Terraform version
+#       run: terraform --version
+#     - name: Setup Terraform wrapper path
+#       run: which terraform
+#     - name: Configure AWS Credentials
+#       id: awsconfig
+#       uses: aws-actions/configure-aws-credentials@v1
+#       with:
+#         aws-region: ap-south-1
+#         role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
+#         # aws-access-key-id: ${{ inputs.AWS_ACCESS_KEY_ID }}
+#         # aws-secret-access-key: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
+#         # aws-session-token: ${{ inputs.AWS_SESSION_TOKEN }}
+
+#     - name: Setup Terragrunt v0.38.4
+#       run: |
+#         sudo wget -q -O /bin/terragrunt "https://github.com/gruntwork-io/terragrunt/releases/download/v0.38.4/terragrunt_linux_amd64"
+#         sudo chmod +x /bin/terragrunt
+#         terragrunt -v
+
+#     # # Setting up Infracost ----for estimated cost of infrastructure    
+#     # - name: Setup Infracost
+#     #   if: github.event_name == 'pull_request'
+#     #   uses: infracost/actions/setup@v1
+#     #   with:
+#     #     api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+#     # - name: Run Infracost
+#     #   if: github.event_name == 'pull_request'
+#     #   run: 
+#     #         echo $PWD
+#     #         cd ./dev/s3
+#     #         echo $PWD
+#     #         infracost breakdown --path=/tmp \
+#     #                           --format=json \
+#     #                           --out-file=/tmp/infracost-base.json
+#     #         #infracost breakdown --path . --format=json --out-file=/tmp/infracost.json
+#     #   env:
+#     #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+#     # - name: Post Infracost comment
+#     #   if: github.event_name == 'pull_request'
+#     #   run: |
+#     #     # Posts a comment to the PR using the 'update' behavior.
+#     #     # This creates a single comment and updates it. The "quietest" option.
+#     #     # The other valid behaviors are:
+#     #     #   delete-and-new - Delete previous comments and create a new one.
+#     #     #   hide-and-new - Minimize previous comments and create a new one.
+#     #     #   new - Create a new cost estimate comment on every push.
+#     #     # See https://www.infracost.io/docs/features/cli_commands/#comment-on-pull-requests for other options.
+#     #     infracost comment github --path=/tmp/infracost-base.json \
+#     #                                --repo=$GITHUB_REPOSITORY \
+#     #                                --github-token=${{github.token}} \
+#     #                                --pull-request=${{github.event.pull_request.number}} \
+#     #                                --behavior=update
+
+#   # infracost comment github --path /tmp/infracost.json \
+#   #                           --repo $GITHUB_REPOSITORY \
+#   #                           --github-token ${{ secrets.GITHUB_TOKEN }} \
+#   #                           --pull-request ${{ github.event.pull_request.number }} \
+#   #                           --behavior new
+#     # format
+#     # - name: Terragrunt Format
+#     #   id: fmt
+#     #   run: terragrunt hclfmt --terragrunt-check                              
+
+#     # Initialize a new or existing Terragrunt working directory by creating initial files, loading any remote state, downloading modules, etc.
+#     # - name: Terragrunt Init
+#     #   id: init
+#     #   run: terragrunt run-all init
+#     - name: Terragrunt Init
+#       id: init
+#       run: 
+#           echo $PWD
+#           cd ./dev/s3
+#           echo $PWD
+#           terragrunt run-all init
+#           #terragrunt init -input=false
+#       # env:
+#       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+# #         GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+
+#     - name: Terragrunt Validate
+#       id: validate
+#       run: 
+#           echo $PWD
+#           cd ./dev/s3
+#           echo $PWD
+#           terragrunt run-all validate
+
+#     # Generates an execution plan for Terragrunt ...........github token for overall org
+#     - name: Terragrunt Plan    
+#       if: github.event_name == 'pull_request'
+#       run: |
+#         # echo $PWD
+#         # cd ./dev/s3
+#         # echo $PWD
+#         # echo 'PLAN_OUTPUT<<EOF' >> $GITHUB_ENV
+#         terragrunt run-all plan 
+#         # -no-color >> $GITHUB_ENV
+#         # echo 'EOF' >> $GITHUB_ENV
+#       continue-on-error: true
+#       # run: 
+#       #     echo $PWD
+#       #     cd ./dev/s3
+#       #     echo $PWD
+#       #     terragrunt run-all plan
+#       # env:
+#       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  #create another var and define outside call the var here 
+#       #   GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+#       #
+
+#     - uses: actions/github-script@0.9.0
+#       if: github.event_name == 'pull_request'
+#       with:
+#         github-token: ${{ secrets.GITHUB_TOKEN }}
+#         script: |
+#           const output = `#### Terragrunt Format and Style 🖌 \`${{ steps.fmt.outcome }}\`
+#           #### Terragrunt Initialization ⚙️ \`${{ steps.init.outcome }}\`
+#           #### Terragrunt Validation 🤖 \`${{ steps.validate.outcome }}\`
+#           #### Terragrunt Plan 📖 \`${{ steps.plan.outcome }}\`
+#           <details><summary>Show Plan</summary>
+#           \`\`\`\n
+#           ${{ env.PLAN_OUTPUT }}
+#           \`\`\`
+#           </details>
+#           Results for commit: ${{ github.event.pull_request.head.sha }}
+          
+#           *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.WORKING_DIRECTORY }}\`, Workflow: \`${{ github.workflow }}\`*`;
+            
+#           github.issues.createComment({
+#             issue_number: context.issue.number,
+#             owner: context.repo.owner,
+#             repo: context.repo.repo,
+#             body: output
+#           })
+
+#     - name: Terragrunt Plan Status
+#       if: steps.plan.outcome == 'failure'
+#       run: exit 1
+
+#       ################
+#       #check before apply of any sort //tag, comment etc
+#       # ex : on approve apply should run ...likewise....
+
+#     - name: Terragrunt Apply
+#       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+#       run: terragrunt run-all apply --terragrunt-non-interactive
+
+#       # On push to main, build or change infrastructure according to Terragrunt configuration files
+#       # Note: It is recommended to set up a required "strict" status check in your repository for "Terragrunt Cloud". See the documentation on "strict" required status checks for more information: https://help.github.com/en/github/administering-a-repository/types-of-required-status-checks
+#     # - name: Terragrunt Apply
+#       # if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+#       # run: terragrunt run-all apply
+#       # env:
+#       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#       #   GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+#       # - name: "Configure AWS Credentials" Action For GitHub Actions
+#       #   uses: aws-actions/configure-aws-credentials@v1
+
+
+
+
+
+
+
+
+
+
+
+
+
+# # name: 'Terragrunt CI'
+
+# # on:
+# #   push:  #dispatch workflow ---- read and try
+# # #     branches:
+# # #     - main
+# #   pull_request:
+# #   workflow_dispatch:
+# # # env: ####### global vars across the jobs  /// add runtime env vars too
+
+# # jobs:
+# #   Terragrunt:
+# #     name: 'Terragrunt'
+# #     runs-on: ubuntu-latest
+# #     permissions:
+# #       id-token: write
+# #       contents: read
+
+# #     # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+# #     defaults:
+# #       run:
+# #         shell: bash
+
+# #     steps:
+# #     # Checkout the repository to the GitHub Actions runner
+# #     - name: Checkout
+# #       uses: actions/checkout@v2
+
+# #     # Install the latest version of Terragrunt CLI and configure the Terragrunt CLI configuration file with a Terragrunt Cloud user API token
+# #     - name: Setup Terraform v1.2.6
+# #       uses: hashicorp/setup-Terraform@v1
+# #       with:
+# #         terraform_version: 1.2.6
+# #         terraform_wrapper: true
+# #     - name: Setup Terraform version
+# #       run: terraform --version
+# #     - name: Setup Terraform wrapper path
+# #       run: which terraform
+# #     - name: Configure AWS Credentials
+# #       id: awsconfig
+# #       uses: aws-actions/configure-aws-credentials@v1
+# #       with:
+# #         aws-region: ap-south-1
+# #         role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
+# #         # aws-access-key-id: ${{ inputs.AWS_ACCESS_KEY_ID }}
+# #         # aws-secret-access-key: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
+# #         # aws-session-token: ${{ inputs.AWS_SESSION_TOKEN }}
+
+# #     - name: Setup Terragrunt v0.38.4
+# #       run: |
+# #         sudo wget -q -O /bin/terragrunt "https://github.com/gruntwork-io/terragrunt/releases/download/v0.38.4/terragrunt_linux_amd64"
+# #         sudo chmod +x /bin/terragrunt
+# #         terragrunt -v
+
+# #     # Initialize a new or existing Terragrunt working directory by creating initial files, loading any remote state, downloading modules, etc.
+# #     - name: Terragrunt Init
+# #       run: 
+# #           echo $PWD
+# #           cd ./dev/s3
+# #           echo $PWD
+# #           terragrunt init -input=false
+# #       # env:
+# #       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+# # #         GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+
+# #     # Generates an execution plan for Terragrunt
+# #     - name: Terragrunt Plan    #github token for overall org
+# #       run: 
+# #           echo $PWD
+# #           cd ./dev/s3
+# #           echo $PWD
+# #           terragrunt run-all plan
+# #       # env:
+# #       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  #create another var and define outside call the var here 
+# #       #   GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+# #       #
+
+
+# #       ################
+# #       #check before apply of any sort //tag, comment etc
+# #       # ex : on approve apply should run ...likewise....
+
+
+
+
+# #       # On push to main, build or change infrastructure according to Terragrunt configuration files
+# #       # Note: It is recommended to set up a required "strict" status check in your repository for "Terragrunt Cloud". See the documentation on "strict" required status checks for more information: https://help.github.com/en/github/administering-a-repository/types-of-required-status-checks
+# #     # - name: Terragrunt Apply
+# #       # if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+# #       # run: terragrunt run-all apply
+# #       # env:
+# #       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+# #       #   GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+# #       # - name: "Configure AWS Credentials" Action For GitHub Actions
+# #       #   uses: aws-actions/configure-aws-credentials@v1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,164 @@
+name: "terragrunt plan and apply"
+description: terragrunt validate and apply terraform
+inputs:
+  aws-audience:
+    required: false
+    description: "AWS Audience"
+    default: sts.amazonaws.com
+  role-to-assume:
+    required: true
+    description: "AWS IAM role"
+  role-session-name:
+    required: true
+    description: "AWS IAM role session name"
+  apply-terragrunt:
+    default: 'false'
+    required: false
+    description: apply the terraform module or not
+  env-dir:
+    required: true
+    description: directory with the aws account (mark) folder name
+  aws-region:
+    required: true
+    description: aws region
+
+
+  # TF_ROOT:
+  #   required: true
+  # # conftest_policy_path:
+  # #   required: true
+  # # image-name: 
+  # #   required: true
+  # GITHUB_TOKEN:
+  #   required: true
+  # TOKEN: 
+  #   required: true 
+
+runs:
+  using: "composite"
+  steps:
+    - name: setup terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_wrapper: false
+
+    - name: Setup Terragrunt
+      uses: autero1/action-terragrunt@v1.2.0
+      with:
+        terragrunt_version: 0.37.3
+        
+    # - name: Sops Binary Installer
+    #   uses: mdgreenwald/mozilla-sops-action@v1.2.0
+    #   with:
+    #     version: 'v3.7.3' # default is latest stable
+
+    - name: GitHub OIDC Auth to assume AWS Role
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        role-to-assume: ${{ inputs.role-to-assume }}
+        role-session-name: ${{ inputs.role-session-name }}
+        aws-region: ${{ inputs.aws-region }}
+        audience: ${{ inputs.aws-audience }}
+
+    - name: terragrunt validate
+      shell: bash
+      # run: |
+      #   cd ${{ inputs.TF_ROOT }}
+      #   ls ${{ inputs.TF_ROOT }}
+      #   git config --local --remove-section http."https://github.com/"
+      #   git config --global url."https://Inesh-Reddy:${{ inputs.TOKEN }}@github.com/infracloudio".insteadOf "https://github.com/infracloudio"
+      #   terraform init -input=false
+      # need to call teh private repo 
+      run: cd Terragrunt/${{ inputs.env-dir }}/${{ inputs.aws-region }} && terragrunt run-all validate --terragrunt-non-interactive
+
+    - name: terragrunt plan
+      shell: bash
+      run: cd Terragrunt/${{ inputs.env-dir }}/${{ inputs.aws-region }} && terragrunt run-all plan
+
+    # - name: terragrunt apply
+    #   shell: bash
+    #   if: ${{ inputs.apply-terragrunt == 'true' }}
+    #   # https://github.com/gruntwork-io/terragrunt/issues/486
+    #   run: cd terragrunt/${{ inputs.env-dir }}/${{ inputs.aws-region }} && terragrunt run-all apply --terragrunt-non-interactive -auto-approve
+
+    # - name: pass policy check result to env variable
+    #       if: ${{ github.event_name == 'pull_request' }}
+    #       run: |
+    #         echo 'MESSAGE_ENV<<EOF' >> $GITHUB_ENV
+    #         cat ${{ inputs.TF_ROOT }}/msg.md >> $GITHUB_ENV
+    #         echo 'EOF' >> $GITHUB_ENV
+    #       shell: bash
+    #     - name: write policy check result to pr
+    #       if: ${{ github.event_name == 'pull_request' }}
+    #       uses: mshick/add-pr-comment@v1
+    #       with:
+    #         message: |
+    #           ${{ env.MESSAGE_ENV }}
+    #         repo-token: ${{ inputs.GITHUB_TOKEN }}
+
+
+
+# name: "terragrunt plan and apply"
+# description: Terragrunt_action
+# inputs:
+#   aws-audience:
+#     required: false
+#     description: "AWS audience"
+#     default: sts.amazonaws.com
+#   role-to-assume:
+#     required: true
+#     description: "AWS IAM role"
+#   role-session-name:
+#     required: true
+#     description: "AWS IAM role session name"
+#   apply-terragrunt:
+#     default: 'false'
+#     required: false
+#     description: apply the terrafform module or not
+#   env-dir:
+#     required: true
+#     description: directory with the aws account (mark) folder name
+#   aws-region:
+#     required: true
+#     description: aws region
+
+# runs:
+#   using: "composite"
+#   steps:
+#     - name: setup terraform
+#       uses: hashicorp/setup-terraform@v2
+#       with:
+#         terraform_wrapper: false
+
+#     - name: Setup Terragrunt
+#       uses: autero1/action-terragrunt@v1.2.0
+#       with:
+#         terragrunt_version: 0.37.3
+
+#     - name: GitHub OIDC Auth to assume AWS Role
+#       uses: aws-actions/configure-aws-credentials@v1
+#       with:
+#         role-to-assume: ${{ inputs.role-to-assume }}
+#         role-session-name: ${{ inputs.role-session-name }}
+#         aws-region: ${{ inputs.aws-region }}
+#         audience: ${{ inputs.aws-audience }}
+
+#     - name: terragrunt validate
+#       shell: bash
+#       run: cd terragrunt/${{ inputs.env-dir }}/${{ inputs.aws-region }} && terragrunt run-all validate #--terragrunt-non-interactive
+
+
+#     - name: terragrunt plan
+#       shell: bash
+#       run: cd terragrunt/${{ inputs.env-dir }}/${{ inputs.aws-region }} && terragrunt run-all plan
+
+#     - name: terragrunt apply
+#       shell: bash
+#       if: ${{ inputs.apply-terragrunt == 'true' }}
+#       # https://github.com/gruntwork-io/terragrunt/issues/486
+#       # -auto-approve skips interactive prompts from Terraform, 
+#       # such as the prompt to check the plan output before running apply.
+#       #  --terragrunt-non-interactiveskips interactive prompts from Terragrunt, 
+#       #  such as the prompt to create an S3 bucket as a state backend 
+#       #  if the bucket doesn't exist already.
+#       run: cd terragrunt/${{ inputs.env-dir }}/${{ inputs.aws-region }} && terragrunt run-all apply --terragrunt-non-interactive -auto-approve
