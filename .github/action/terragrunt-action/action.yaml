@@ -22,6 +22,18 @@ inputs:
     required: true
     description: aws region
 
+
+  TF_ROOT:
+    required: true
+  # conftest_policy_path:
+  #   required: true
+  # image-name: 
+  #   required: true
+  GITHUB_TOKEN:
+    required: true
+  TOKEN: 
+    required: true 
+
 runs:
   using: "composite"
   steps:
@@ -50,6 +62,13 @@ runs:
 
     - name: terragrunt validate
       shell: bash
+      run: |
+        cd ${{ inputs.TF_ROOT }}
+        ls ${{ inputs.TF_ROOT }}
+        git config --local --remove-section http."https://github.com/"
+        git config --global url."https://Inesh-Reddy:${{ inputs.TOKEN }}@github.com/infracloudio".insteadOf "https://github.com/infracloudio"
+        terraform init -input=false
+      # need to call teh private repo 
       run: cd Terragrunt/${{ inputs.env-dir }}/${{ inputs.aws-region }} && terragrunt run-all validate --terragrunt-non-interactive
 
     - name: terragrunt plan
@@ -62,6 +81,20 @@ runs:
     #   # https://github.com/gruntwork-io/terragrunt/issues/486
     #   run: cd terragrunt/${{ inputs.env-dir }}/${{ inputs.aws-region }} && terragrunt run-all apply --terragrunt-non-interactive -auto-approve
 
+    - name: pass policy check result to env variable
+          if: ${{ github.event_name == 'pull_request' }}
+          run: |
+            echo 'MESSAGE_ENV<<EOF' >> $GITHUB_ENV
+            cat ${{ inputs.TF_ROOT }}/msg.md >> $GITHUB_ENV
+            echo 'EOF' >> $GITHUB_ENV
+          shell: bash
+        - name: write policy check result to pr
+          if: ${{ github.event_name == 'pull_request' }}
+          uses: mshick/add-pr-comment@v1
+          with:
+            message: |
+              ${{ env.MESSAGE_ENV }}
+            repo-token: ${{ inputs.GITHUB_TOKEN }}
 
 
 
