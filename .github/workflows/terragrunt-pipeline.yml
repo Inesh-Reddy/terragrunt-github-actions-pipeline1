@@ -16,8 +16,8 @@ jobs:
         include:
           - env-dir: dev
             aws-region: us-east-1
-            aws-account-id: 950711871063
-            aws-role: terragrunt
+            aws-account-id: 919611311137
+            aws-role: inception-oidc-role
             aws: aws
     name: terragrunt aws dev environment deploy
     runs-on: ubuntu-latest
