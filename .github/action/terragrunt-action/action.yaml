@@ -62,12 +62,12 @@ runs:
 
     - name: terragrunt validate
       shell: bash
-      run: |
-        cd ${{ inputs.TF_ROOT }}
-        ls ${{ inputs.TF_ROOT }}
-        git config --local --remove-section http."https://github.com/"
-        git config --global url."https://Inesh-Reddy:${{ inputs.TOKEN }}@github.com/infracloudio".insteadOf "https://github.com/infracloudio"
-        terraform init -input=false
+      # run: |
+      #   cd ${{ inputs.TF_ROOT }}
+      #   ls ${{ inputs.TF_ROOT }}
+      #   git config --local --remove-section http."https://github.com/"
+      #   git config --global url."https://Inesh-Reddy:${{ inputs.TOKEN }}@github.com/infracloudio".insteadOf "https://github.com/infracloudio"
+      #   terraform init -input=false
       # need to call teh private repo 
       run: cd Terragrunt/${{ inputs.env-dir }}/${{ inputs.aws-region }} && terragrunt run-all validate --terragrunt-non-interactive
 
